@@ -1,0 +1,6 @@
+scipy==1.9.3
+pandas==1.5.1
+caffeine==0.5
+tqdm==4.65.0
+
+UPDATE THIS !!

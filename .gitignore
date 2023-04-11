@@ -1,0 +1,5 @@
+*.icloud
+.DS_Store
+other-code/
+__pycache__/
+temp/
