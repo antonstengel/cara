@@ -1,7 +1,7 @@
 import numpy as np
 
-from modules.distribution import Distribution
-from modules.hyperparameters import DEFAULT_HYPERPARAMETERS
+from cara.distribution import Distribution
+from cara.hyperparameters import DEFAULT_HYPERPARAMETERS
 
 class Parser:
     """Parses the raw string from an input txt."""

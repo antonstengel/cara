@@ -10,16 +10,15 @@ import time
 import itertools
 from subprocess import STDOUT, PIPE, Popen
 
-from modules.auction_parser import Parser
-from modules.hyperparameters import DEFAULT_HYPERPARAMETERS
+from cara import auction_parser
+from cara import hyperparameters
+
 
 
 class Auction:
     """Takes a Parser object and handles auction."""
 
-    def __init__(self, parser: Parser, args):
-        self.args = args
-
+    def __init__(self, parser: auction_parser.Parser):
         self.n = parser.n # num bidder classes
         self.m = parser.m # num items
         self.c = parser.c # num type classes
@@ -54,11 +53,11 @@ class Auction:
 
         self.discretized = False
 
-        self.h = DEFAULT_HYPERPARAMETERS
+        self.h = hyperparameters.DEFAULT_HYPERPARAMETERS
         # probably better way to get the right types
-        h_ints = ('type_class_sf', 'masses_sf', 'final_mass_sf', 'support_sf', 'final_support_sf')
-        h_bools = ('round_down_mass', 'round_down_support')
-        h_strs = ('roasolver')
+        h_ints = hyperparameters.H_INTS
+        h_bools = hyperparameters.H_BOOLS
+        h_strs = hyperparameters.H_STRS
         for k, v in parser.h.items():
             if k in h_ints:
                 self.h[k] = int(v)
@@ -75,11 +74,11 @@ class Auction:
         """
         self.discretized = True
 
-        dists = []
+        dists_r = []
         for ri in range(self.r):
             masses, support = self.phi_r[ri].discretize(self.T_r[ri], int(self.S_r[ri]), self.P_r[ri])
-            dists.append(pd.Series(masses, index=support, name=ri))
-        df = pd.concat(dists, axis=1)
+            dists_r.append(pd.Series(masses, index=support, name=ri))
+        df = pd.concat(dists_r, axis=1)
         df = df.sort_index()
         df = df.fillna(0.0)
 
@@ -167,9 +166,10 @@ class Auction:
         return s
 
     
-    def run(self, output_file: str) -> None:
+    def run(self, args, output_file: str) -> None:
         """Runs concrete auctions self.a times and discretized trials self.t times.
         """
+        self.args = args
         self.args.output = 'w' if not self.args.output else self.args.output
 
         # writing column headers for results and intermediate file.
@@ -187,7 +187,7 @@ class Auction:
 
         # calculating concrete auction revenues
         if self.a > 0:
-            spa_revs = self._handle_spa_revenue()
+            spa_revs = self.run_spa()
             if self.args.full:
                 spa_revs.to_csv(f'{output_file}-spa.csv', float_format="%.4f", mode=self.args.output)
         else:
@@ -196,6 +196,8 @@ class Auction:
             spa_revs = pd.DataFrame()
 
         # doing all discretizations and storing them
+        if not os.path.exists('temp'):
+            os.makedirs('temp')
         intermediate_representations = []
         temp_files = []
         for ti in range(0, self.t):
@@ -241,8 +243,11 @@ class Auction:
                 f.seek(0)
                 f.truncate()
                 f.writelines(lines[:-self.t])
-            for ti in range(self.t):
-                self._handle_roasolver_response(results_t[ti]['stdout'], results_t[ti]['stderr'], output_file, ti)          
+        
+        # this we reprint in correct order if -full and add revs to revs_t regardless
+        # CHECK IF WE'RE WRITING EVERYTHING TO REVS_T TWICE. WTF IS GOING ON.
+        for ti in range(self.t):
+            self._handle_roasolver_response(results_t[ti]['stdout'], results_t[ti]['stderr'], output_file, ti)          
         
         # writing timing data
         if self.args.timing and self.t > 0:
@@ -264,7 +269,8 @@ class Auction:
 
 
     def _handle_roasolver_response(self, stdout, stderr, output_file, ti):
-        """Takes RoaSolver response and writes to results CSV
+        """Handles RoasSolver's response. Directly writes to files if self.args.full.
+        Appends timing and revenue data to instance variables.
         """
         nan_row = [np.nan for _ in range(len(self.bmps))]
         if stderr:
@@ -298,7 +304,7 @@ class Auction:
                 f.write(','.join([f'{x:.4f}' for x in self.u_ts[ti]]) + '\n')
     
 
-    def _handle_spa_revenue(self):
+    def run_spa(self):
         """Does the entire spa revenue calcuations
         """
         # so we can use better sampling with self.inv_phi_r

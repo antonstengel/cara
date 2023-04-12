@@ -15,9 +15,10 @@ from os.path import isfile
 import itertools
 import time
 
-from modules.auction import Auction
-from modules.auction_parser import Parser
+from cara.auction import Auction
+from cara.auction_parser import Parser
 
+import cara
 
 
 argparser = argparse.ArgumentParser()
@@ -28,6 +29,7 @@ argparser.add_argument('-m', '--more', action="store_true", default=False, help=
 argparser.add_argument('-t', '--timing', action="store_true", default=False, help='Write timing data.')
 argparser.add_argument('-o', '--output', choices=['a', 'w'], required=False, help='SOMETHING')
 args = argparser.parse_args()
+
 
 print('\nAll input files are:\n' + '\n'.join(args.input_files))
 
@@ -66,8 +68,8 @@ for i, input_file in enumerate(args.input_files):
     with open(input_file, "r") as f:
         input = f.read()
     parsed = Parser(input)
-    auction = Auction(parsed, args)
-    auction.run(output_file)
+    auction = Auction(parsed)
+    auction.run(args, output_file)
 
 print()
 
