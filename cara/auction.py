@@ -229,7 +229,7 @@ class Auction:
 
         pool = ProcessingPool()
         results_t = []
-        for x in tqdm(pool.imap(to_parallelize, temp_files, range(self.t)), total=self.t, desc='Discretization', dynamic_ncols=True):
+        for x in tqdm(pool.imap_unordered(to_parallelize, temp_files, range(self.t)), total=self.t, desc='Discretization', dynamic_ncols=True):
             results_t.append(x)
 
         # getting rid of temp files
