@@ -33,6 +33,8 @@ args = argparser.parse_args()
 
 print('\nAll input files are:\n' + '\n'.join(args.input_files))
 
+npr.seed(0)
+
 already_exists = False
 for input_file in args.input_files:
     output_file = input_file[:-4] + '-res'

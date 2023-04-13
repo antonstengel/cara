@@ -235,7 +235,9 @@ class Auction:
                     'revs':revs,
                     'roa_time':roa_time}
 
+
         results_t = []
+
         if not self.h['parallel']: # this runs linearly normally
             for ti in tqdm(range(self.t), desc='Discretization', dynamic_ncols=True):
                 results = run_trial(temp_files[ti], ti)
