@@ -20,7 +20,6 @@ class Auction:
     """Takes a Parser object and handles auction."""
 
     def __init__(self, parser: auction_parser.Parser):
-        print('RUNNING AUCTION2')
 
         self.n = parser.n # num bidder classes
         self.m = parser.m # num items
@@ -70,9 +69,6 @@ class Auction:
                 self.h[k] = str(v)
             else:
                 raise ValueError(f'Invalid hyperparameter "{k}"')
-
-        print(self.h)
-
 
     def discretize(self) -> None:
         """Discretizes input according to parameters.
@@ -174,6 +170,8 @@ class Auction:
     def run(self, args, output_file: str) -> None:
         """Runs concrete auctions self.a times and discretized trials self.t times.
         """
+        st_total = time.time()
+
         self.args = args
         self.args.output = 'w' if not self.args.output else self.args.output
 
@@ -196,8 +194,7 @@ class Auction:
             if self.args.full:
                 spa_revs.to_csv(f'{output_file}-spa.csv', float_format="%.4f", mode=self.args.output)
         else:
-            for _ in tqdm(range(0), desc='SPA', dynamic_ncols=True):
-                pass
+            for _ in tqdm(range(0), desc='SPA', dynamic_ncols=True): pass
             spa_revs = pd.DataFrame()
 
         # discretizing each trial and storing them in temp/
@@ -235,36 +232,46 @@ class Auction:
                     'revs':revs,
                     'roa_time':roa_time}
 
+        # running all trials either linearly or in parallel
         results_t = []
-        if not self.h['parallel']: # this runs linearly normally
+        
+        if not self.h['parallel']: # run linearly
             for ti in tqdm(range(self.t), desc='Discretization', dynamic_ncols=True):
                 results = run_trial(temp_files[ti], ti)
                 results_t.append(results)
-        else: # running things in parallel
+        elif self.t > 0: # potentially run parallel
             pbar = tqdm(total=self.t, desc='Discretization', dynamic_ncols=True)
-            
+
             # run the first trial alone
             results = run_trial(temp_files[0], ti=0)
             results_t.append(results)
             pbar.update(1)
 
-            # run the rest of the trials in parallel      
-            pool = ProcessingPool() #Pool()
-            for results in pool.imap(run_trial, temp_files[1:], range(1, self.t)):
-                results_t.append(results)
-                pbar.update(1)
-            pbar.close()
+            CUT_OFF_TIME = 30 * 60 # 30 minutes for first trial
+            if results['trial_time'] > CUT_OFF_TIME: # run linearly
+                for ti in range(1, self.t):
+                    results = run_trial(temp_files[ti], ti)
+                    results_t.append(results)
+                    pbar.update(1)
+                pbar.close()
+            else: # run in parallel
+                pool = ProcessingPool() # Pool() might be able to use normal multiprocessing actually
+                for results in pool.imap(run_trial, temp_files[1:], range(1, self.t)):
+                    results_t.append(results)
+                    pbar.update(1)
+                pbar.close()
 
-            # gets rid of last self.t lines in results CSV
-            # rewrites results CSV in correct order
-            if self.args.full and self.t > 0:
-                with open(f'{output_file}.csv', 'r+') as f:
-                    lines = f.readlines()
-                    f.seek(0)
-                    f.truncate()
-                    f.writelines(lines[:-self.t])
-            for ti in range(self.t):
-                _ = self._handle_roasolver_response(results_t[ti]['stdout'], results_t[ti]['stderr'], output_file, ti)
+                # gets rid of last self.t lines in results CSV and rewrites results CSV in correct order
+                if self.args.full and self.t > 0:
+                    with open(f'{output_file}.csv', 'r+') as f:
+                        lines = f.readlines()
+                        f.seek(0)
+                        f.truncate()
+                        f.writelines(lines[:-self.t])
+                for ti in range(self.t):
+                    _ = self._handle_roasolver_response(results_t[ti]['stdout'], results_t[ti]['stderr'], output_file, ti)
+        else: # no discretization trials
+            for _ in tqdm(range(0), desc='Discretization', dynamic_ncols=True): pass        
 
         # getting rid of temp files
         for file in os.listdir('temp'):
@@ -278,13 +285,18 @@ class Auction:
         
         # writes timing data
         if self.args.timing and self.t > 0:
+            et_total = time.time()
+            total_time = et_total - st_total
+            iteration_time = total_time / self.t
+            overall_time = pd.Series([total_time, iteration_time], name='time', index=['total_time', 'iteration_time'])
+        
             trials = pd.Series([i for i in range(1, self.t+1)], name='trial')
             time_cols = ['time_'+'_'.join(x) for x in self.bmps]
 
             roa_times_df = pd.DataFrame(self.roa_time_t, columns=time_cols, index=trials)
             roa_times_df.to_csv(f'{output_file}-time-pre.csv', float_format="%.4f", mode=self.args.output)
             
-            trial_times_df = pd.Series(self.time_t, name='time', index=trials)
+            trial_times_df = overall_time.append(pd.Series(self.time_t, name='time', index=trials))
             trial_times_df.to_csv(f'{output_file}-time-gen.csv', float_format="%.4f", mode=self.args.output)
 
         # writing best revs to stdout
@@ -362,11 +374,17 @@ class Auction:
         bmps_sum = pd.Series([np.sum([int(bm) for bm in bmp]) for bmp in self.bmps])
         bmps_temp = pd.Series(self.bmps)[bmps_sum > 1]
 
+        if len(bmps_temp) == 0:
+            pbar = tqdm(total=len(self.bmps)*self.a, desc='SPA', dynamic_ncols=True)
+            pbar.update(len(self.bmps)*self.a)
+            pbar.close()
+            return pd.DataFrame()
+
         p_nc_normalized = self.p_nc / np.sum(self.p_nc, 1).reshape(-1, 1)
 
         sep_revs_list = []
         bun_revs_list = []
-        pbar = tqdm(total=len(self.bmps)*self.a, desc='SPA', dynamic_ncols=True)
+        pbar = tqdm(total=len(bmps_temp)*self.a, desc='SPA', dynamic_ncols=True)
         for bmp in bmps_temp:
             bmp_ints = [int(b) for b in bmp] # maybe just change default type of bmp stuff to int instead of str
             bmp_sep_revs = []
@@ -404,8 +422,13 @@ class Auction:
 
         # computing confidence intervals
         # https://stackoverflow.com/questions/15033511/compute-a-confidence-interval-from-sample-data
-        sep_conf = sep_revs_df.apply(lambda a: scipy.stats.t.interval(0.95, len(a)-1, loc=np.mean(a), scale=scipy.stats.sem(a)))
-        bun_conf = bun_revs_df.apply(lambda a: scipy.stats.t.interval(0.95, len(a)-1, loc=np.mean(a), scale=scipy.stats.sem(a)))
+        if self.a == 1: # can't do t stat with one sample
+            nan_row = [np.nan for _ in range(len(rev_cols))]
+            sep_conf = pd.DataFrame(dict(zip(rev_cols, nan_row)), index=[0,1])
+            bun_conf = pd.DataFrame(dict(zip(rev_cols, nan_row)), index=[0,1])
+        else:
+            sep_conf = sep_revs_df.apply(lambda a: scipy.stats.t.interval(0.95, len(a)-1, loc=np.mean(a), scale=scipy.stats.sem(a)))
+            bun_conf = bun_revs_df.apply(lambda a: scipy.stats.t.interval(0.95, len(a)-1, loc=np.mean(a), scale=scipy.stats.sem(a)))
         sep_conf = sep_conf.T
         bun_conf = bun_conf.T
         sep_conf.columns = ['0.95_conf_low_separate', '0.95_conf_high_separate']

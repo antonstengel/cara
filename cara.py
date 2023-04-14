@@ -4,6 +4,7 @@ import pandas as pd
 import scipy
 import caffeine
 from tqdm import tqdm
+import natsort
 
 import math
 import argparse
@@ -30,6 +31,7 @@ argparser.add_argument('-t', '--timing', action="store_true", default=False, hel
 argparser.add_argument('-o', '--output', choices=['a', 'w'], required=False, help='SOMETHING')
 args = argparser.parse_args()
 
+args.input_files = natsort.natsorted(args.input_files)
 
 print('\nAll input files are:\n' + '\n'.join(args.input_files))
 
