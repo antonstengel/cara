@@ -1,9 +1,9 @@
 DEFAULT_HYPERPARAMETERS = {
-    'type_class_sf'      : 4, # num sig figs to use for p_nc
-    'masses_sf'          : 4, # num sig figs for discretized masses
-    'final_mass_sf'      : 7, # num sig figs to use for the mass with largest value in overall support
-    'support_sf'         : 4, # num sig figs to use for each value in support
-    'final_support_sf'   : 7, # num sig figs to use for the largest value in the overall support
+    'type_class_sf'      : 6, # num sig figs to use for p_nc
+    'masses_sf'          : 6, # num sig figs for discretized masses
+    'final_mass_sf'      : 8, # num sig figs to use for the mass with largest value in overall support
+    'support_sf'         : 6, # num sig figs to use for each value in support
+    'final_support_sf'   : 8, # num sig figs to use for the largest value in the overall support
     'round_down_mass'    : True, # boolean to decide whether final masses should be rounded down
     'round_down_support' : True, # boolean for whether each value in support should be rounded down
     'roasolver'          : 'cara/roasolver.jar', # roasolver JAR to use

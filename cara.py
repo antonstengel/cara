@@ -35,7 +35,7 @@ args.input_files = natsort.natsorted(args.input_files)
 
 print('\nAll input files are:\n' + '\n'.join(args.input_files))
 
-npr.seed(0)
+# npr.seed(0)
 
 already_exists = False
 for input_file in args.input_files:

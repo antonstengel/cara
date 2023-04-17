@@ -1,0 +1,7 @@
+1 2 1 1 1000 0
+1 100
+D1
+D1
+1-1/x  1 inf   rf 5 4 1   1 1   1 100   1 17.1463 33.6548 1_000_000
+
+masses_sf=6 final_mass_sf=8 support_sf=6 final_support_sf=8

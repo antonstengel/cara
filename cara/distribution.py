@@ -171,7 +171,7 @@ class Distribution(scipy.stats.rv_continuous):
         return masses
     
     def stochastically_dominating_masses(self, support: list):
-        """ This function takes a list of reverse-sorted values in the support, and returns the 
+        """ This function takes a descending list of values in the support, and returns the 
         masses if you expand all the probability rightwards to each support value. Results in 
         the closest-fitting stochastically-dominating masses for a given discretized support.
         """
