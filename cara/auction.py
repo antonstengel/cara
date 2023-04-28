@@ -296,7 +296,8 @@ class Auction:
             roa_times_df = pd.DataFrame(self.roa_time_t, columns=time_cols, index=trials)
             roa_times_df.to_csv(f'{output_file}-time-pre.csv', float_format="%.4f", mode=self.args.output)
             
-            trial_times_df = overall_time.append(pd.Series(self.time_t, name='time', index=trials))
+            #trial_times_df = overall_time.append(pd.Series(self.time_t, name='time', index=trials))
+            trial_times_df = pd.concat([overall_time, pd.Series(self.time_t, name='time', index=trials)])
             trial_times_df.to_csv(f'{output_file}-time-gen.csv', float_format="%.4f", mode=self.args.output)
 
         # writing best revs to stdout
