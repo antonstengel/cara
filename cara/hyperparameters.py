@@ -10,7 +10,7 @@ DEFAULT_HYPERPARAMETERS = {
     'parallel'           : True # run discretized trials in parallel
 }
 
-# specifies the 
+# specifies the types of each hyperparameter
 H_INTS = ('type_class_sf', 'masses_sf', 'final_mass_sf', 'support_sf', 'final_support_sf')
 H_BOOLS = ('round_down_mass', 'round_down_support', 'parallel')
 H_STRS = ('roasolver')

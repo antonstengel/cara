@@ -44,7 +44,7 @@ class Auction:
         self.u_s    = None # current discretized support
         self.phi_rs = None # current discretized valuation distributions
 
-        self.u_ts  = []  # discretized trial supports
+        self.u_t  = []  # discretized trial supports
         self.rev_t  = [] # discretized trial revenues
         self.time_t = [] # discretized trial times
         self.roa_time_t = [] # detailed timing from RoaSolver.jar
@@ -54,7 +54,6 @@ class Auction:
         self.discretized = False
 
         self.h = hyperparameters.DEFAULT_HYPERPARAMETERS
-        # probably better way to get the right types
         h_ints = hyperparameters.H_INTS
         h_bools = hyperparameters.H_BOOLS
         h_strs = hyperparameters.H_STRS
@@ -64,7 +63,7 @@ class Auction:
             elif k in h_bools:
                 if   v == 'True' : self.h[k] = True
                 elif v == 'False': self.h[k] = False
-                else: raise ValueError(('Invalid boolean hyperparamater.'))
+                else: raise ValueError('Invalid boolean hyperparamater.')
             elif k in h_strs:
                 self.h[k] = str(v)
             else:
@@ -206,7 +205,7 @@ class Auction:
             temp_files.append(temp_file)
             
             self.discretize()
-            self.u_ts.append(self.u_s)
+            self.u_t.append(self.u_s)
             
             with open(temp_file, 'w') as f:
                 f.write(self.output())
@@ -324,7 +323,7 @@ class Auction:
             if self.args.full:
                 with open(f'{output_file}.csv', 'a') as f:
                     f.write(','.join(nan_row_str) + ',')
-                    f.write((','.join([f'{x:.4f}' for x in self.u_ts[ti]]) + '\n'))
+                    f.write((','.join([f'{x:.4f}' for x in self.u_t[ti]]) + '\n'))
             return (nan_row, None)
 
         s = stdout.decode('utf-8')
@@ -336,7 +335,7 @@ class Auction:
             if self.args.full:
                 with open(f'{output_file}.csv', 'a') as f:
                     f.write(','.join(nan_row_str) + ',')
-                    f.write((','.join([f'{x:.4f}' for x in self.u_ts[ti]]) + '\n'))
+                    f.write((','.join([f'{x:.4f}' for x in self.u_t[ti]]) + '\n'))
             return (nan_row, None)
         else:
             revs = df.iloc[:,-2].values[1:]
@@ -344,7 +343,7 @@ class Auction:
             if self.args.full:
                 with open(f'{output_file}.csv', 'a') as f:
                         f.write(f'{ti+1},'+','.join(revs) + ',')
-                        f.write(','.join([f'{x:.4f}' for x in self.u_ts[ti]]) + '\n')
+                        f.write(','.join([f'{x:.4f}' for x in self.u_t[ti]]) + '\n')
             return (revs, roa_time)
     
 

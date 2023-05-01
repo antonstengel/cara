@@ -65,7 +65,7 @@ class Parser:
                             
             self.T_r[ri] = words[3]
             
-            if self.T_r[ri] == 'N/A': # CHECK THAT THIS WORKS
+            if self.T_r[ri] == 'N/A':
                 self.S_r[ri] = None
                 self.P_r = None
             else:

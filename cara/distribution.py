@@ -3,7 +3,7 @@ import numpy.random as npr
 import scipy
 
 class Distribution(scipy.stats.rv_continuous):
-    """Represents continuous distributions."""
+    """Represents continuous valuation distributions."""
 
     def __init__(self, dist: str, a: float, b: float):
         super().__init__(self)
@@ -74,7 +74,6 @@ class Distribution(scipy.stats.rv_continuous):
         masses = self.stochastically_dominated_masses(support)
         return masses, support
 
-    # this is contains the functionality of _naive_random_discretization and _one_outlier_naive_random_discretization
     def _random_discretization(self, support_size: int, parameters: list) -> tuple:
         """Takes support_size-1 many points randomly between l1 and u1 as well as a point at self.a.
         
@@ -157,7 +156,7 @@ class Distribution(scipy.stats.rv_continuous):
         return masses, support
 
     def stochastically_dominated_masses(self, support: list):
-        """ Takes a list of reverse-sorted values in the support, and returns the masses
+        """ Takes a list of descending values in the support, and returns the masses
         if you collapse all the probability leftwards to each support value. Results
         in the closest-fitting stochastically-dominated masses for a given discretized support.
         """
